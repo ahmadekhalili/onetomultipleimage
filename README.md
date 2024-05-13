@@ -15,8 +15,6 @@ after makemigrations and migrate, models will be created.
 
 
 &nbsp;
-
-&nbsp;
 ## Serializer Field: OneToMultipleImage
 
 Receives image in Base64/form-data with list of sizes and generate images with specified sizes.
@@ -29,11 +27,18 @@ list of sizes in str. for generate original image use 'default'. required in wri
 - **upload_to**:
 path in str for uploads image. required in writing.
 
+- **data**:
+it is same `data` pass to serializer in writing, but structure should be:  
+{'image': formdata_file/Base64_str, 'alt': 'some_alt'}  
+  - `image` key is required. can be formdata file or Base64 str.
+  - `alt` is optional and will fill auto if left blank.
+
 
 **example 1**:
 ```
 from onetomultipleimage.field import OneToMultipleImage
-serializer = OneToMultipleImage(sizes=['120', '240', 'default'], data=data['image'])
+image = request.FILES['image']
+serializer = OneToMultipleImage(sizes=['120', '240', 'default'], data={'image': image})
 serializer.is_valid()
 s.validated_data
 ```
@@ -48,15 +53,14 @@ s.validated_data
 class PostSerializer(serializers.Serializer):
     image = OneToMultipleImage(sizes=['120', '240', 'default'])
 
-data = {'image': {'image': "data:image/jpeg;base64,/9j/..."}}
+data = {'image': {'image': "data:image/jpeg;base64,/9j/..."}}  # image in Base64 (str)
 serializer = PostSerializer(data=data)
 serializer.is_valid()
 s.validated_data
 ```
 same result...
 
-&nbsp;  
-&nbsp;  
+&nbsp;   
 ## onetomultipleimage models
 
 if you need django model for one-to-multy process, you have to add `onetomultipleimage` to `INSTALLED_APPS`. after migrate, you have two table **__FatherImage__**, **__ImageSizes__**.
@@ -64,18 +68,18 @@ if you need django model for one-to-multy process, you have to add `onetomultipl
 ### FatherImage model
 Store original image. attributes:
 
-- image: django image field. upload_to path is: 'FatherImage/year/month/day' but can override directly to any value before model initializing.
-- alt: image's alt. you can leave it blank to auto generating by uuid.uuid4
-- sizes: lists for specify which sizes you want to create. (list of str elements)
+- **image**: django **ImageField**. `upload_to` path is: _'FatherImage/year/month/day'_ but can override directly before model initializing.
+- **alt**: django **CharField**, represent image's alt, you can leave it blank to auto generating by uuid.uuid4
+- **sizes**: custom **ListCharField**, represent lists of sizes you want to create them. (like: ['120', '240'])
 
 &nbsp;  
 ### ImageSizes
 Stores different sizes of original image. attributes:
 
-- image: django image field. `upload_to` path is: __'ImageSizes/year/month/day'__ but can override directly to any value before model initializing.
-- alt: image's alt. take fatherimage.alt or auto generating by uuid.uuid4 + size like: 'db949z-120'
-- size: size of image (in str)
-- father: django ForeignKey, reference to FatherImage. (FatherImage.imagesizes in reverse relation is accecible)
+- **image**: django **ImageField**. `upload_to` path is: _'ImageSizes/year/month/day'_ but can override directly before model initializing.
+- **alt**: django **CharField**, represent image's alt, you can leave it blank to auto generating by uuid.uuid4
+- **size**: django **CharField**, represent size of image (in str).
+- **father**: django **ForeignKey**, reference to **FatherImage**. (FatherImage.imagesizes in reverse relation is accecible)
 
 
 **example 1**:  
@@ -83,17 +87,18 @@ Stores different sizes of original image. attributes:
 image = FatherImage(image=request.FILES['image'], sizes=['120', '240', '480'])
 image.save()
 ```
-here is created fatherimage and 3 imagesize with 120, 240, 480 pxs. fatherimage.alt and imagesizes.alt auto generated like: 'db949e-default', ''db949z-120'
+now fatherimage and 3 imagesizes with 120, 240, 480 PXs is created. fatherimage.alt and imagesizes.alt auto generated like: 'db949e-default', ''db949z-120', ...
 
 
 **example 2**:
+```
 image = FatherImage(image=request.FILES['image'], alt='sea_food', sizes=['120', '240', '480'])
 image.save()
-
-after .save, fatherimage and 3 imagesize with 120, 240, 480 pxs is created. fatherimage.alt is like: 'sea_food-default'
+```
+after .save, fatherimage and 3 imagesizes with 120, 240, 480 PXs is created. fatherimage.alt is like: 'sea_food-default'
 
 ```
 image = FatherImage.objects.get(alt='sea_food-default')
 image_sizes = image.imagesizes.all()
 ```
-**image_sizes** contain 3 different size of original image. ```image_sizes[0].alt``` is like: 'sea_food-120',  ```image_sizes[0].alt```: 'sea_food-240', ...
+**image_sizes** contain 3 different size of original image. ```image_sizes[0].alt``` is like: 'sea_food-120',  ```image_sizes[1].alt```: 'sea_food-240', ...
