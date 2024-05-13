@@ -1,0 +1,2 @@
+include onetomultipleimage/migrations/*.py
+include onetomultipleimage/migrations/*.sql  # If you have any custom SQL
