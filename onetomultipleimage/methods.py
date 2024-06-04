@@ -56,17 +56,18 @@ class ImageCreationSizes:
             date = f"{now.year} {now.month} {now.day}".split()     # %Y %-m %-d format doesn't work in windows
         return f'{middle_path}{date[0]}/{date[1]}/{date[2]}/'
 
-    def _save(self, opened_image, upload_to, full_name, format, instance, att_name):
+    def _save(self, opened_image, full_name, format, instance, att_name, upload_to=None):
         if isinstance(opened_image, PilImage.Image):
             if instance:           # save image by image field (need write to disk)
                 buffer = io.BytesIO()
                 opened_image.save(buffer, format=format)
                 setattr(instance, att_name, SimpleUploadedFile(full_name, buffer.getvalue()))
                 # field.upload_to must change to our path, also '/media/' must remove from path otherwise raise error
-                if callable(upload_to):    # if upload_to is function
-                    getattr(instance, att_name).field.upload_to = upload_to
-                else:                      # if is string
-                    getattr(instance, att_name).field.upload_to = upload_to.replace('/media/', '', 1)
+                if upload_to:
+                    if callable(upload_to):    # if upload_to is function
+                        getattr(instance, att_name).field.upload_to = upload_to
+                    else:                      # if is string
+                        getattr(instance, att_name).field.upload_to = upload_to.replace('/media/', '', 1)
                 return None
             else:                  # save image (write to disk) by pillow.save()
                 opened_image.save(self.base_path + upload_to + full_name)
@@ -99,6 +100,9 @@ class ImageCreationSizes:
         1- returned value: {model_instance1, model_instance2, ...}
         2- returned value: {<Upload object 1 - (.image .url .size)>, <Upload object 2 - (.image .url .size)>}
         '''
+        if not upload_to and not instances:  # specify 'upload_to' or take from instances (django's image field)
+            raise ValueError("'instances' and 'upload_to' can't be None at the same time")
+
         class Upload:
             def __init__(self, image, url, alt, size, **kwargs):
                 kwargs['image'], kwargs['url'], kwargs['alt'], kwargs['size'] = image, url, alt, size
@@ -120,7 +124,7 @@ class ImageCreationSizes:
                 return instances
         opened_image = PilImage.open(stream) if not opened_image else opened_image
 
-        if not callable(upload_to):  # upload_to is str or None
+        if not callable(upload_to) and upload_to:  # upload_to is str
             upload_to = self.get_path(upload_to)
             if not os.path.exists(self.base_path + upload_to):
                 os.makedirs(self.base_path + upload_to)
@@ -138,7 +142,7 @@ class ImageCreationSizes:
                     resized = opened_image  # for 'default' size
                 full_name = f'{self.name}-{height}' + f'.{format}'
                 instance = next(iter_instances) if iter_instances else None
-                upload_image = self._save(resized, upload_to, full_name, format, instance, att_name)
+                upload_image = self._save(resized, full_name, format, instance, att_name, upload_to=upload_to)
                 # url is like: /media/posts_images/1402/3/20/qwer43asd2e4-720.JPG
                 if not instances:
                     objects += [Upload(image=upload_image, url=upload_to+full_name, alt=f'{self.alt}-{height}', size=height)]

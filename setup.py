@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='onetomultipleimage',
-    version='1.0.4',
+    version='1.0.5',
     packages=['onetomultipleimage'],
     install_requires=["django", "djangorestframework", "pillow"],
     extras_require={
