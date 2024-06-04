@@ -54,7 +54,7 @@ class ImageCreationSizes:
         else:
             now = datetime.now()
             date = f"{now.year} {now.month} {now.day}".split()     # %Y %-m %-d format doesn't work in windows
-        return f'{middle_path}{date[0]}/{date[1]}/{date[2]}/'
+        return f'{middle_path}/{date[0]}/{date[1]}/{date[2]}/'
 
     def _save(self, opened_image, full_name, format, instance, att_name, upload_to=None):
         if isinstance(opened_image, PilImage.Image):
