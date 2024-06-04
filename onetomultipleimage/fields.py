@@ -43,8 +43,9 @@ class ListCharFormField(forms.CharField):
 
 
 class OneToMultipleImage(serializers.Serializer):
-    def __init__(self, sizes=None, upload_to=None, *args, **kwargs):
+    def __init__(self, instance=None, sizes=None, upload_to=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.instance = instance   # self.instance overrides to None in super().__init__, so use after super().__init__
         if not self.instance:      # in writing, sizes and upload_to required
             if not sizes and not upload_to:
                 raise ValueError("both of 'sizes' and 'upload_to' arguments must be provided")
@@ -52,11 +53,14 @@ class OneToMultipleImage(serializers.Serializer):
             self.upload_to = upload_to
 
     def to_representation(self, value):
-        result = {}
-        for image_icon in value:
-            size = image_icon.size
-            result[size] = {'image': image_icon.url, 'alt': getattr(image_icon, 'alt', '')}
-        return result
+        if isinstance(value, list):
+            result = {}
+            for image_icon in value:
+                size = image_icon.size
+                result[size] = {'image': image_icon.url, 'alt': getattr(image_icon, 'alt', '')}
+            return result
+        else:
+            return {'image': value.url, 'alt': getattr(value, 'alt', '')}
 
     def to_internal_value(self, data):
         obj = ImageCreationSizes(data=data, sizes=self.sizes)

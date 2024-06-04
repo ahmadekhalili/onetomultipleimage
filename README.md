@@ -1,6 +1,6 @@
 # onetomultipleimage
 
-onetomultipleimage is a django package to convert one image to specified sizes. it can be used in REST or django model.
+onetomultipleimage is a django package to convert one image to specified sizes. You give an image, and receive uploaded of that image in different sizes. It can be used in REST or django model.
 
 ## installation
 
@@ -35,33 +35,80 @@ it is same `data` pass to serializer in writing, but structure should be:
 
 
 **example 1**:
-```
+```python
 from onetomultipleimage.field import OneToMultipleImage
 image = request.FILES['image']
-serializer = OneToMultipleImage(sizes=['120', '240', 'default'], data={'image': image})
+serializer = OneToMultipleImage(data={'image': image}, sizes=['120', '240', 'default'], upload_to='posts')
 serializer.is_valid()
 s.validated_data
 ```
 
-`.validated_data` here returns 3 object with 120px height, 240px height, and default (original) image sizes. `validated_data` returns like:  
+`.validated_data` here returns 3 object with 120px height, 240px height, and default (original) image sizes.   
+`validated_data` returns like:  
+```python
 {'image': [<Upload object 1e2813-120 - (.image .url .alt .size)>, <Upload object 1e2813-240 - (.image .url .alt .size)>, <Upload object 1e2813-default - (.image .url .alt .size)>]}
+```
 
 &nbsp;  
-**OneToMultipleImage** can use inside a serializer.  
+**OneToMultipleImage** can use inside a serializer.   
 **example 2**:  
-```
+```python
 class PostSerializer(serializers.Serializer):
-    image = OneToMultipleImage(sizes=['120', '240', 'default'])
+    image = OneToMultipleImage(sizes=['120', '240', 'default'], upload_to='posts')
 
 data = {'image': {'image': "data:image/jpeg;base64,/9j/..."}}  # image in Base64 (str)
 serializer = PostSerializer(data=data)
 serializer.is_valid()
 s.validated_data
 ```
-same result...
 
 &nbsp;   
-## onetomultipleimage models
+### `OneToMultipleImage` in reading:   
+
+**example 1**:
+```python
+from onetomultipleimage.field import OneToMultipleImage
+serializer = OneToMultipleImage(data={'image': image}, sizes=['120', '240', 'default'], upload_to='posts')
+serializer.is_valid()
+serialized = OneToMultipleImage(serializer.validated_data).data
+return Response(serialized)
+```
+
+serialized version looks like:
+```python
+{"240": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-240.JPEG", "alt": "2a9316-240"},
+ "420": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-420.JPEG", "alt": "2a9316-420"},
+ "default": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-default.JPEG", "alt": "2a9316-default"}
+}
+```
+
+&nbsp;
+**example 2**:
+```python
+from onetomultipleimage.field import OneToMultipleImage
+class PostSerializer(serializers.Serializer):
+    image = OneToMultipleImage(sizes=['120', '240', 'default'], upload_to='posts')
+
+data = {'image': {'image': "data:image/jpeg;base64,/9j/..."}}  # image in Base64 (str)
+serializer = PostSerializer(data=data)
+serializer.is_valid()
+serialized = PostSerializer(serializer.validated_data).data
+return Response(serialized)
+```
+
+serialized version looks like:
+```python
+{"image":
+  {"240": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-240.JPEG", "alt": "2a9316-240"},
+   "420": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-420.JPEG", "alt": "2a9316-420"},
+   "default": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-default.JPEG", "alt": "2a9316-default"}
+  }
+ }
+```
+
+
+&nbsp;   
+## onetomultipleimage model
 
 if you need django model for one-to-multy process, you have to add `onetomultipleimage` to `INSTALLED_APPS`. after migrate, you have two table **__FatherImage__**, **__ImageSizes__**.
 
