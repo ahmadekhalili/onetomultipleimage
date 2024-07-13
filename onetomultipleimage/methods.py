@@ -125,6 +125,8 @@ class ImageCreationSizes:
         opened_image = PilImage.open(stream) if not opened_image else opened_image
 
         if not callable(upload_to) and upload_to:  # upload_to is str
+            if upload_to[-1] == '/':
+                upload_to = upload_to[:-1]
             upload_to = self.get_path(upload_to)
             if not os.path.exists(self.base_path + upload_to):
                 os.makedirs(self.base_path + upload_to)
