@@ -1,13 +1,13 @@
 # onetomultipleimage
 
-onetomultipleimage is a django package to convert one image to specified sizes. You give an image, and receive uploaded of that image in different sizes. It can be used in REST or django model.
+onetomultipleimage is a django package to convert one image to several sizes. You give an image (with sizes), and receive uploaded images with that sizes. It can be used in REST or django model.
 
 ## installation
 
 1- run: ``` pip install onetomultipleimage[jalali]```  
 
 To install onetomultipleimage with Jalali date support, add ```[jalali]``` part.  
-`IMAGES_PATH_TYPE='jalali'` in settings.py, now jalali date path used (instead default gregorian) like:  
+also put `IMAGES_PATH_TYPE='jalali'` in settings.py, now jalali date path used (instead default gregorian) like:  
 __/media/FatherImage/1401/12/13/small.jpg__ instead of: __/media/FatherImage/2023/3/4/small.jpg__
 
 2- to install **onetomultipleimage** models, add 'onetomultipleimage' to `INSTALLED_APPS` of project's settings.py
@@ -18,6 +18,17 @@ after makemigrations and migrate, models will be created.
 ## Serializer Field: OneToMultipleImage
 
 Receives image in Base64/form-data with list of sizes and generate images with specified sizes.
+
+`OneToMultipleImage` fields:
+
+- **image**:
+`Base64ImageField`, accept data in base64 or form-data in writing and retursn uploaded image object. in representing, shows image url.
+
+- **alt**:
+`CharField`, stores alt of the image. if not alt value is provided, the program fill it with a 6 digit uuid followed by the image size.
+
+- **size**:
+`CharField`, stores size of the image as string. optional.
 
 `OneToMultipleImage` arguments:
 
@@ -34,27 +45,26 @@ it is same `data` pass to serializer in writing, but structure should be:
   - `alt` is optional and will fill auto if left blank.
 
 
-**example 1**:
+**Example 1**:
 ```python
-from onetomultipleimage.field import OneToMultipleImage
+from onetomultipleimage.fields import OneToMultipleImage
 image = request.FILES['image']
-serializer = OneToMultipleImage(data={'image': image}, sizes=['120', '240', 'default'], upload_to='posts')
+serializer = OneToMultipleImage(data={'image': image}, sizes=['120', '240', 'default'], upload_to='posts/')
 serializer.is_valid()
 s.validated_data
 ```
 
-`.validated_data` here returns 3 object with 120px height, 240px height, and default (original) image sizes.   
-`validated_data` returns like:  
+`.validated_data` here uploaded 3 image with 120px height, 240px height, and default (original) image sizes.   
+`validated_data` returns deserialized of 'image', 'alt', 'size' fields:  
 ```python
-{'image': [<Upload object 1e2813-120 - (.image .url .alt .size)>, <Upload object 1e2813-240 - (.image .url .alt .size)>, <Upload object 1e2813-default - (.image .url .alt .size)>]}
-```
+[{'image': <Upload object 3d5cb1-120 - (.image .url .alt .size)>, 'alt': '3d5cb1-120', 'size': 120}, {'image': <Upload object 3d5cb1-240 - (.image .url .alt .size)>, 'alt': '3d5cb1-240', 'size': 240}, {'image': <Upload object 3d5cb1-default - (.image .url .alt .size)>, 'alt': '3d5cb1-default', 'size': 'default'}]```
 
 &nbsp;  
 **OneToMultipleImage** can use inside a serializer.   
-**example 2**:  
+**Example 2**:  
 ```python
 class PostSerializer(serializers.Serializer):
-    image = OneToMultipleImage(sizes=['120', '240', 'default'], upload_to='posts')
+    image = OneToMultipleImage(sizes=['120', '240', 'default'], upload_to='posts/')
 
 data = {'image': {'image': "data:image/jpeg;base64,/9j/..."}}  # image in Base64 (str)
 serializer = PostSerializer(data=data)
@@ -65,10 +75,10 @@ s.validated_data
 &nbsp;   
 ### `OneToMultipleImage` in reading:   
 
-**example 1**:
+**Example 1**:
 ```python
 from onetomultipleimage.field import OneToMultipleImage
-serializer = OneToMultipleImage(data={'image': image}, sizes=['120', '240', 'default'], upload_to='posts')
+serializer = OneToMultipleImage(data={'image': image}, sizes=['120', '240', 'default'], upload_to='posts/')
 serializer.is_valid()
 serialized = OneToMultipleImage(serializer.validated_data).data
 return Response(serialized)
@@ -76,18 +86,17 @@ return Response(serialized)
 
 serialized version looks like:
 ```python
-{"240": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-240.JPEG", "alt": "2a9316-240"},
- "420": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-420.JPEG", "alt": "2a9316-420"},
- "default": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-default.JPEG", "alt": "2a9316-default"}
-}
+[{'image': '/media/posts/1403/4/25/cd4851b839d0-120.JPEG', 'alt': '584fe1-120', 'size': 120}, 
+ {'image': '/media/posts/1403/4/25/cd4851b839d0-240.JPEG', 'alt': '584fe1-240', 'size': 240}, 
+ {'image': '/media/posts/1403/4/25/cd4851b839d0-default.JPEG', 'alt': '584fe1-default', 'size': 'default'}]
 ```
 
 &nbsp;
-**example 2**:
+**Example 2**:
 ```python
 from onetomultipleimage.field import OneToMultipleImage
 class PostSerializer(serializers.Serializer):
-    image = OneToMultipleImage(sizes=['120', '240', 'default'], upload_to='posts')
+    image = OneToMultipleImage(sizes=['120', '240', 'default'], upload_to='posts/')
 
 data = {'image': {'image': "data:image/jpeg;base64,/9j/..."}}  # image in Base64 (str)
 serializer = PostSerializer(data=data)
@@ -98,12 +107,11 @@ return Response(serialized)
 
 serialized version looks like:
 ```python
-{"image":
-  {"240": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-240.JPEG", "alt": "2a9316-240"},
-   "420": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-420.JPEG", "alt": "2a9316-420"},
-   "default": {"image": "/media/posts/2024/6/4/62dfaccd0e9c-default.JPEG", "alt": "2a9316-default"}
-  }
- }
+{'image': 
+   [{'image': '/media/posts/1403/4/25/31557ad47c9d-120.JPEG', 'alt': 'e76815-120', 'size': 120}, 
+    {'image': '/media/posts/1403/4/25/31557ad47c9d-240.JPEG', 'alt': 'e76815-240', 'size': 240}, 
+    {'image': '/media/posts/1403/4/25/31557ad47c9d-default.JPEG', 'alt': 'e76815-default', 'size': 'default'}]
+}
 ```
 
 
@@ -129,7 +137,7 @@ Stores different sizes of original image. attributes:
 - **father**: django **ForeignKey**, reference to **FatherImage**. (FatherImage.imagesizes in reverse relation is accecible)
 
 
-**example 1**:  
+**Example 1**:  
 ```
 image = FatherImage(image=request.FILES['image'], sizes=['120', '240', '480'])
 image.save()
@@ -137,7 +145,7 @@ image.save()
 now fatherimage and 3 imagesizes with 120, 240, 480 PXs is created. fatherimage.alt and imagesizes.alt auto generated like: 'db949e-default', ''db949z-120', ...
 
 
-**example 2**:
+**Example 2**:
 ```
 image = FatherImage(image=request.FILES['image'], alt='sea_food', sizes=['120', '240', '480'])
 image.save()

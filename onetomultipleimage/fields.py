@@ -4,6 +4,8 @@ from rest_framework import serializers
 
 import ast
 
+from drf_extra_fields.fields import Base64ImageField
+
 from .methods import ImageCreationSizes
 
 
@@ -42,7 +44,11 @@ class ListCharFormField(forms.CharField):
         return value
 
 
-class OneToMultipleImage(serializers.Serializer):
+class OneToMultipleImage(serializers.BaseSerializer):
+    image = Base64ImageField()  # deserialized version == SimpleUploadedFile(..), serialized == url
+    alt = serializers.CharField(max_length=100, allow_blank=True, default='')
+    size = serializers.CharField(max_length=10, allow_blank=True, required=False)
+
     def __init__(self, instance=None, sizes=None, upload_to=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance = instance   # self.instance overrides to None in super().__init__, so use after super().__init__
@@ -52,17 +58,20 @@ class OneToMultipleImage(serializers.Serializer):
             self.sizes = sizes
             self.upload_to = upload_to
 
-    def to_representation(self, value):
-        if isinstance(value, list):
-            result = {}
-            for image_icon in value:
-                size = image_icon.size
-                result[size] = {'image': image_icon.url, 'alt': getattr(image_icon, 'alt', '')}
-            return result
+    def to_representation(self, obj):
+        ret = []
+        if isinstance(obj[0], dict):
+            for icon in obj:
+                ret.append({'image': icon['image'].url, 'alt': icon.get('alt', ''), 'size': icon.get('size', '')})
         else:
-            return {'image': value.url, 'alt': getattr(value, 'alt', '')}
+            for icon in obj:
+                ret.append(super().to_representation(icon))
+        return ret
 
     def to_internal_value(self, data):
         obj = ImageCreationSizes(data=data, sizes=self.sizes)
         instances = obj.upload(upload_to=self.upload_to)
-        return instances
+        internal = []
+        for instance in instances:
+            internal.append({'image': instance, 'alt': instance.alt, 'size': instance.size})
+        return internal
