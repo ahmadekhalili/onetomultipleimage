@@ -13,7 +13,7 @@ class ImageCreationSizes:
     # in this class we receive image binary/base64 and save it to disk with specified sizes. if a model specified,
     # that models field will be filled instead, for example: image1.image = size1, image2.image = size2, ...
     def __init__(self, data, sizes, name=None):
-        # data is like: {'image': InMemoryUploadFIle(..)} (keys are instance fields)
+        # data is like: {'image': InMemoryUploadFIle(..)} (keys are instance fields). 'image' can be Base64 str too.
         # sizes like:
         self.base_path = str(settings.BASE_DIR)  # is like: /home/akh/eCommerce-web-api/ictsun
         self.data = data.copy()  # we don't want change outside variables has been passed to our class.

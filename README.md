@@ -51,7 +51,7 @@ from onetomultipleimage.fields import OneToMultipleImage
 image = request.FILES['image']
 serializer = OneToMultipleImage(data={'image': image}, sizes=['120', '240', 'default'], upload_to='posts/')
 serializer.is_valid()
-s.validated_data
+serializer.validated_data
 ```
 
 `.validated_data` here uploaded 3 image with 120px height, 240px height, and default (original) image sizes.   
@@ -69,7 +69,7 @@ class PostSerializer(serializers.Serializer):
 data = {'image': {'image': "data:image/jpeg;base64,/9j/..."}}  # image in Base64 (str)
 serializer = PostSerializer(data=data)
 serializer.is_valid()
-s.validated_data
+serializer.validated_data
 ```
 
 &nbsp;   
